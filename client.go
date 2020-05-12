@@ -60,7 +60,7 @@ func (this *Client) buildUrl(index string, docType string, params ...string) str
 	}
 
 }
-func (this *Client) buildRequest(url string, query Query) (*http.Request, error) {
+func (this *Client) buildRequest(method string, url string, query Query) (*http.Request, error) {
 	b, err := query.BuildBody()
 	if err != nil {
 		return nil, err
@@ -70,26 +70,7 @@ func (this *Client) buildRequest(url string, query Query) (*http.Request, error)
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-	req.SetBasicAuth(this.basicAuthUser, this.basicAuthPasswd)
-	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
-	return req, nil
-}
-
-func (this *Client) buildCompletionSuggestRequest(url string, suggest *CompletionSuggest) (*http.Request, error) {
-	b, err := suggest.BuildBody()
-	if err != nil {
-		return nil, err
-	}
-	body, err := json.Marshal(b)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	req, err := http.NewRequest(method, url, bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +81,7 @@ func (this *Client) buildCompletionSuggestRequest(url string, suggest *Completio
 
 func (this *Client) Search(index string, docType string, query Query, params ...string) (*SearchResult, error) {
 	url := this.buildUrl(index, docType, params...)
-	req, err := this.buildRequest(url, query)
+	req, err := this.buildRequest("POST", url, query)
 	if err != nil {
 		return nil, err
 	}
@@ -112,18 +93,61 @@ func (this *Client) Search(index string, docType string, query Query, params ...
 	return this.buildResult(resp, result)
 }
 
-func (this *Client) CompletionSuggestSearch(index string, docType string, suggest *CompletionSuggest, params ...string) (*SearchResult, error) {
-	url := this.buildUrl(index, docType, params...)
-	req, err := this.buildCompletionSuggestRequest(url, suggest)
+func (this *Client) Scroll(params map[string]string) (*SearchResult, error) {
+	url := this.url + "/_search/scroll"
+	body, err := json.Marshal(params)
 	if err != nil {
 		return nil, err
 	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.SetBasicAuth(this.basicAuthUser, this.basicAuthPasswd)
+	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
 	resp, err := this.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	result := new(SearchResult)
 	return this.buildResult(resp, result)
+}
+
+func (this *Client) ClearScroll(scrollIds ...string) (*ClearScrollResp, error) {
+	url := this.url + "/_search/scroll"
+	body, err := json.Marshal(map[string][]string{"scroll_id": scrollIds})
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	req.SetBasicAuth(this.basicAuthUser, this.basicAuthPasswd)
+	req.Header.Set("Content-Type", "application/json;charset=UTF-8")
+
+	response, err := this.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	result := new(ClearScrollResp)
+
+	defer response.Body.Close()
+
+	err = json.NewDecoder(response.Body).Decode(result)
+
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode != 200 {
+		reason := fmt.Sprintf("clear scroll fail,reason:%s", result.Error.Reason)
+		return result, errors.New(reason)
+	}
+	return result, nil
+
 }
 
 func (this *Client) buildResult(response *http.Response, result *SearchResult) (*SearchResult, error) {

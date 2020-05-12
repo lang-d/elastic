@@ -60,7 +60,6 @@ func (this *GlobSuggest) BuildBody() (map[string]interface{}, error) {
 
 // see https://www.elastic.co/guide/en/elasticsearch/reference/6.3/search-suggesters-completion.html
 type CompletionSuggest struct {
-	source         map[string][]string
 	prefix         *string
 	text           *string
 	field          string
@@ -80,18 +79,6 @@ func NewCompletionSuggest(name string, field string) *CompletionSuggest {
 	return &CompletionSuggest{name: name, field: field}
 }
 
-func (this *CompletionSuggest) Source(key string, fields ...string) *CompletionSuggest {
-	if key != "includes" && key != "excludes" {
-		key = "includes"
-	}
-	for _, field := range fields {
-		if this.source == nil {
-			this.source = make(map[string][]string)
-		}
-		this.source[key] = append(this.source[key], field)
-	}
-	return this
-}
 func (this *CompletionSuggest) Name() string {
 	return this.name
 }
@@ -220,9 +207,6 @@ func (this *CompletionSuggest) BuildBody() (map[string]interface{}, error) {
 	}
 
 	suggestBody["suggest"] = map[string]interface{}{this.name: suggest}
-	if this.source != nil {
-		suggestBody["_source"] = this.source
-	}
 
 	return suggestBody, nil
 }
