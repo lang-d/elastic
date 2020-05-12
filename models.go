@@ -17,7 +17,6 @@ type SearchResult struct {
 	Error        *Error               `json:"error,omitempty"`
 	Status       int                  `json:"status,omitempty"`
 	Suggest      map[string][]Suggest `json:"suggest,omitempty"`
-	ScrollId     string               `json:"_scroll_id,omitempty"`
 }
 
 type Suggest struct {

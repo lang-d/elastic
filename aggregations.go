@@ -9,6 +9,74 @@ type SearchAggregations interface {
 	Name() string
 }
 
+// range aggregations
+type RangeAggs struct {
+	name   string
+	field  string
+	ranges []map[string]interface{}
+	aggs   []SearchAggregations
+}
+
+func NewRangeAggs(name string, field string) *RangeAggs {
+	return &RangeAggs{name: name, field: field, ranges: []map[string]interface{}{}}
+}
+func (this *RangeAggs) Aggs(aggs ...SearchAggregations) *RangeAggs {
+	this.aggs = append(this.aggs, aggs...)
+	return this
+}
+
+// return this aggs's name
+func (this *RangeAggs) Name() string {
+	return this.name
+}
+
+func (this *RangeAggs) Field(field string) *RangeAggs {
+	this.field = field
+	return this
+}
+
+func (this *RangeAggs) Ranges(ranges []map[string]interface{}) *RangeAggs {
+	this.ranges = ranges
+	return this
+}
+
+func (this *RangeAggs) AddRanges(_range map[string]interface{}) *RangeAggs {
+	this.ranges = append(this.ranges, _range)
+	return this
+}
+
+// {"name":{"range":{"field":"field","ranges":[{"from":23,"to":45,"key":"23-45"}]}}}
+func (this *RangeAggs) BuildBody() (map[string]interface{}, error) {
+	if "" == this.name {
+		return nil, errors.New("ranges aggs name can't be ''")
+	}
+	if "" == this.field {
+		return nil, errors.New("field can't be null")
+	}
+	query := make(map[string]interface{})
+	_range := make(map[string]interface{})
+	_subRange := make(map[string]interface{})
+	_subRange["field"] = this.field
+	if this.aggs != nil {
+		aggses := make(map[string]interface{})
+		for _, a := range this.aggs {
+			subAggs, err := a.BuildBody()
+			if err != nil {
+				return nil, err
+			}
+			aggses[a.Name()] = subAggs[a.Name()]
+		}
+		_subRange["aggs"] = aggses
+	}
+
+	_subRange["ranges"] = this.ranges
+	_range["range"] = _subRange
+
+	query[this.name] = _range
+
+	return query, nil
+}
+
 // terms aggregations
 type TermsAggs struct {
 	name  string
