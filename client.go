@@ -175,10 +175,10 @@ func (this *Client) Ping() (bool, error) {
 	req.SetBasicAuth(this.basicAuthUser, this.basicAuthPasswd)
 
 	resp, err := this.client.Do(req)
-	defer resp.Body.Close()
 	if err != nil {
 		return false, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		errorStr := fmt.Sprintf("can't connect to elastic,bad code:%d", resp.StatusCode)
 		return false, errors.New(errorStr)
@@ -223,4 +223,9 @@ func (this *Client) Bulk(actions []Action) (*BulkResult, error) {
 
 	return bulkResult, nil
 
+}
+
+func (this *Client) Close() error {
+	this.client.CloseIdleConnections()
+	return nil
 }
