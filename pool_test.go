@@ -3,11 +3,11 @@ package elastic
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/lang-d/elastic/pool"
 	"io/ioutil"
 	"log"
-	"sync"
 	"testing"
+
+	"github.com/lang-d/elastic/pool"
 )
 
 func FormatHit(hits Hits) []map[string]interface{} {
@@ -49,18 +49,7 @@ func init() {
 }
 
 func TestMyPool(t *testing.T) {
-	var wg sync.WaitGroup
-
-	for i := 0; i < 10000; i++ {
-		wg.Add(1)
-		go func() {
-			// defer wg.Done()
-			defer wg.Add(-1)
-			get_mypoolsearch()
-		}()
-	}
-
-	wg.Wait()
+	suggestA()
 }
 
 func BenchmarkMyPool(b *testing.B) {
@@ -99,4 +88,34 @@ func get_mypoolsearch() {
 	hits := searchResult.Hits
 
 	fmt.Printf("%s\n", FormatHit(*hits))
+}
+
+func suggestA() {
+	//从连接池中取得一个连接
+	v, err := MyPool.GetClient()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	defer MyPool.PutClient(v)
+	if v == nil {
+		log.Fatalf("\n\n\n\n*******\n\n\n")
+	}
+
+	client := v.(*Client)
+	query := NewQueryBody()
+	suggest := NewCompletionSuggest("accountList", "suggest").Size(5).Prefix("周")
+	globSuggest := NewGlobSuggest()
+	globSuggest.Suggestes(suggest)
+	query.Suggest(globSuggest)
+
+	fmt.Println(query.String())
+
+	searchResult, err := client.Search("search_douyin_user_suggest", "_doc", query)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	for _, t := range searchResult.Suggest["accountList"] {
+		fmt.Println(t.Options)
+	}
 }

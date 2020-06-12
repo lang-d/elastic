@@ -73,6 +73,20 @@ type CompletionSuggest struct {
 	unicodeAware   bool
 	params         map[string]interface{}
 	name           string
+	source         map[string][]string
+}
+
+func (this *CompletionSuggest) Source(key string, fields ...string) *CompletionSuggest {
+	if key != "includes" && key != "excludes" {
+		key = "includes"
+	}
+	for _, field := range fields {
+		if this.source == nil {
+			this.source = make(map[string][]string)
+		}
+		this.source[key] = append(this.source[key], field)
+	}
+	return this
 }
 
 func NewCompletionSuggest(name string, field string) *CompletionSuggest {
@@ -161,7 +175,6 @@ func (this *CompletionSuggest) BuildBody() (map[string]interface{}, error) {
 		completion["skip_duplicates"] = this.skipDuplicates
 	}
 
-	suggestBody := make(map[string]interface{})
 	if this.fuzzy {
 		completion["fuzzy"] = this.fuzzy
 	} else {
@@ -206,7 +219,5 @@ func (this *CompletionSuggest) BuildBody() (map[string]interface{}, error) {
 		}
 	}
 
-	suggestBody["suggest"] = map[string]interface{}{this.name: suggest}
-
-	return suggestBody, nil
+	return map[string]interface{}{this.name: suggest}, nil
 }
