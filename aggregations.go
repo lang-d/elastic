@@ -79,11 +79,12 @@ func (this *RangeAggs) BuildBody() (map[string]interface{}, error) {
 
 // terms aggregations
 type TermsAggs struct {
-	name  string
-	field string
-	size  *int
-	order []map[string]string
-	aggs  []SearchAggregations
+	name   string
+	field  string
+	size   *int
+	script ScriptInter
+	order  []map[string]string
+	aggs   []SearchAggregations
 }
 
 func NewTermsAggs(name string, field string) *TermsAggs {
@@ -115,24 +116,39 @@ func (this *TermsAggs) Order(field string, order string) *TermsAggs {
 	return this
 }
 
-// {"name":{"terms":{"field":"field","size":10,"order":[{"_key":"asc"}]}}}
+func (this *TermsAggs) Script(script ScriptInter) *TermsAggs {
+	this.script = script
+	return this
+}
+
+// {"name":{"terms":{"field":"field","size":10,"order":[{"_key":"asc"}],"script":{"source":"doc['time'].value"}}}}
 func (this *TermsAggs) BuildBody() (map[string]interface{}, error) {
 	if "" == this.name {
 		return nil, errors.New("terms aggs name can't be ''")
 	}
-	if "" == this.field {
-		return nil, errors.New("field can't be null")
+	if "" == this.field && this.script == nil {
+		return nil, errors.New("must have either a field context or a script")
 	}
 	query := make(map[string]interface{})
 	terms := make(map[string]interface{})
 	subTerms := make(map[string]interface{})
-	subTerms["field"] = this.field
+	if this.field != "" {
+		subTerms["field"] = this.field
+	}
 	if this.size != nil {
 		subTerms["size"] = this.size
 	}
 	if len(this.order) > 0 {
 		subTerms["order"] = this.order
 	}
+	if this.script != nil {
+		script, err := this.script.BuildBody()
+		if err != nil {
+			return nil, err
+		}
+		subTerms["script"] = script
+	}
+
 	terms["terms"] = subTerms
 	if this.aggs != nil {
 		aggses := make(map[string]interface{})
