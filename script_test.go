@@ -111,3 +111,35 @@ func Format(searchResult *SearchResult, paths ...string) (map[string]interface{}
 
 	return result, nil
 }
+
+func TestFloat64Return(t *testing.T) {
+	//从连接池中取得一个连接
+	v, err := MyPool.GetClient()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	defer MyPool.PutClient(v)
+	if v == nil {
+		log.Fatalf("\n\n\n\n*******\n\n\n")
+	}
+
+	client := v.(*Client)
+	query := NewQueryBody()
+	boolQuery := NewBoolQuery()
+	boolQuery.Filter(NewTermQuery("userId", "188888880"))
+
+	query.Query(boolQuery).Aggs(NewAvgAggs("avgKsCoins", "totalKsCoin")).Size(0)
+
+	searchResult, err := client.Search("search_kuaishou_live", "_doc", query)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	println(query.String())
+	fmt.Printf("%s\n", searchResult.Aggregations["avgKsCoins"])
+	result, err := Format(searchResult, "avgKsCoins.value")
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	fmt.Printf("%s\n", result)
+}

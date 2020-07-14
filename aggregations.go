@@ -897,3 +897,42 @@ func (this *TopHitsAggs) BuildBody() (map[string]interface{}, error) {
 	aggs[this.name] = topHitsAggs
 	return aggs, nil
 }
+
+// missing aggregations
+type MissingAggs struct {
+	name  string
+	field string
+}
+
+func NewMissingAggs(name string, field string) *MissingAggs {
+	return &MissingAggs{name: name, field: field}
+}
+
+// return this aggs's name
+func (this *MissingAggs) Name() string {
+	return this.name
+}
+
+func (this *MissingAggs) Field(field string) *MissingAggs {
+	this.field = field
+	return this
+}
+
+// {"name":{"missing":{"field":"field"}}}
+func (this *MissingAggs) BuildBody() (map[string]interface{}, error) {
+	if "" == this.name {
+		return nil, errors.New("terms aggs name can't be ''")
+	}
+
+	query := make(map[string]interface{})
+	missing := make(map[string]interface{})
+	subMissing := make(map[string]interface{})
+	if this.field != "" {
+		subMissing["field"] = this.field
+	}
+	missing["missing"] = subMissing
+
+	query[this.name] = missing
+
+	return query, nil
+}
