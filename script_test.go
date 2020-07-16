@@ -143,3 +143,72 @@ func TestFloat64Return(t *testing.T) {
 
 	fmt.Printf("%s\n", result)
 }
+
+func TestSortInterface(t *testing.T) {
+	//从连接池中取得一个连接
+	v, err := MyPool.GetClient()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	defer MyPool.PutClient(v)
+	if v == nil {
+		log.Fatalf("\n\n\n\n*******\n\n\n")
+	}
+
+	client := v.(*Client)
+	query := NewQueryBody()
+	boolQuery := NewBoolQuery()
+
+	boolQuery.Filter(NewTermQuery("commodity.uniqueItemId", "zCGuBjHKlcQ"))
+	nestedQuery := NewNestedQuery("commodity").Query(boolQuery)
+
+	query.Query(nestedQuery).SortInterface(map[string]interface{}{
+		"commodity.settlementPrice": map[string]interface{}{
+			"order": "desc",
+			"nested": map[string]interface{}{
+				"path": "commodity",
+			},
+		},
+	}).Source("includes", "liveStreamId")
+
+	searchResult, err := client.Search("search_kuaishou_live", "_doc", query)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	println(query.String())
+	result, err := Format(searchResult)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	fmt.Printf("%s\n", result)
+}
+
+func TestSort(t *testing.T) {
+	//从连接池中取得一个连接
+	v, err := MyPool.GetClient()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	defer MyPool.PutClient(v)
+	if v == nil {
+		log.Fatalf("\n\n\n\n*******\n\n\n")
+	}
+
+	client := v.(*Client)
+	query := NewQueryBody()
+
+	query.Sort(map[string]string{"anaTime": "desc"}).Source("includes", "liveStreamId")
+
+	searchResult, err := client.Search("search_kuaishou_live", "_doc", query)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	println(query.String())
+	result, err := Format(searchResult)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	fmt.Printf("%s\n", result)
+}

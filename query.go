@@ -16,7 +16,7 @@ type QueryBody struct {
 	aggs        []SearchAggregations
 	from        int
 	size        *int
-	sort        []map[string]string
+	sort        []map[string]interface{}
 	source      map[string][]string
 	highlight   Query
 	suggest     *GlobSuggest
@@ -41,6 +41,15 @@ func (this *QueryBody) Size(size int) *QueryBody {
 	return this
 }
 func (this *QueryBody) Sort(sort map[string]string) *QueryBody {
+	tempSort := make(map[string]interface{})
+	for k, v := range sort {
+		tempSort[k] = v
+	}
+	this.sort = append(this.sort, tempSort)
+	return this
+}
+
+func (this *QueryBody) SortInterface(sort map[string]interface{}) *QueryBody {
 	this.sort = append(this.sort, sort)
 	return this
 }
@@ -83,7 +92,16 @@ func (this *QueryBody) Source(key string, fields ...string) *QueryBody {
 // sometime maybe need reset sort or set not just one rule
 // it is for this situation
 func (this *QueryBody) SetSort(sort []map[string]string) *QueryBody {
-	this.sort = sort
+	tempSorts := make([]map[string]interface{}, 0)
+	for _, s := range sort {
+		t := make(map[string]interface{})
+		for k, v := range s {
+			t[k] = v
+		}
+		tempSorts = append(tempSorts, t)
+	}
+
+	this.sort = tempSorts
 	return this
 }
 
