@@ -26,6 +26,8 @@ type Pool interface {
 	Release()
 
 	Len() int
+
+	Create() (interface{}, error)
 }
 
 // Config 连接池相关配置
@@ -258,4 +260,9 @@ func (c *channelPool) Release() {
 // Len 连接池中已有的连接
 func (c *channelPool) Len() int {
 	return len(c.getConns())
+}
+
+// Create 创建一个链接
+func (c *channelPool) Create() (interface{}, error) {
+	return c.factory()
 }
