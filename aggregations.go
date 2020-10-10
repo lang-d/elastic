@@ -993,3 +993,93 @@ func (this *MissingAggs) BuildBody() (map[string]interface{}, error) {
 
 	return query, nil
 }
+
+// filters aggregations
+type InsideFiltersAggs struct {
+	name   string
+	filter Query
+}
+type OutsideFiltersAggs struct {
+	otherBucketKey string
+	filters        []InsideFiltersAggs
+}
+type FiltersAggs struct {
+	name    string
+	filters OutsideFiltersAggs
+	aggs    []SearchAggregations
+}
+
+func NewFiltersAggs(name string) *FiltersAggs {
+	return &FiltersAggs{name: name}
+}
+func (this *FiltersAggs) OtherBucketKey(otherBucketKey string) *FiltersAggs {
+	this.filters.otherBucketKey = otherBucketKey
+	return this
+}
+
+func (this *FiltersAggs) Filters(name string, query Query) *FiltersAggs {
+	this.filters.filters = append(this.filters.filters, InsideFiltersAggs{name, query})
+	return this
+}
+func (this *FiltersAggs) Aggs(aggs ...SearchAggregations) *FiltersAggs {
+	this.aggs = append(this.aggs, aggs...)
+	return this
+}
+
+// return this aggs's name
+func (this *FiltersAggs) Name() string {
+	return this.name
+}
+
+// "filters": {
+// 	"other_bucket_key": "normal",
+// 	"filters": {
+// 	  "sec": {
+// 		"exists": {
+// 		  "field": "sec_kill_info.sku_min_price"
+// 		}
+// 	  }
+// 	}
+// }
+func (this *FiltersAggs) BuildBody() (map[string]interface{}, error) {
+	if "" == this.name {
+		return nil, errors.New("filter aggs name can't be ''")
+	}
+	query := make(map[string]interface{})
+	FiltersAggs := make(map[string]interface{})
+	if "" != this.filters.otherBucketKey {
+		FiltersAggs["other_bucket_key"] = this.filters.otherBucketKey
+	}
+	insideFiltersAggs := make(map[string]interface{})
+	if len(this.filters.filters) > 0 {
+		for _, filter := range this.filters.filters {
+			if filter.filter != nil {
+				body, err := filter.filter.BuildBody()
+				if err != nil {
+					return nil, err
+				}
+				insideFiltersAggs[filter.name] = body
+			}
+		}
+		FiltersAggs["filters"] = insideFiltersAggs
+	}
+
+	aggses := make(map[string]interface{})
+	if this.aggs != nil {
+		for _, a := range this.aggs {
+			subAggs, err := a.BuildBody()
+			if err != nil {
+				return nil, err
+			}
+			aggses[a.Name()] = subAggs[a.Name()]
+		}
+	}
+	query[this.name] = map[string]interface{}{
+		"filters": FiltersAggs,
+	}
+	if aggses != nil {
+		query[this.name].(map[string]interface{})["aggs"] = aggses
+	}
+
+	return query, nil
+}
