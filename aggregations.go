@@ -393,12 +393,13 @@ func (this *HistogramAggs) BuildBody() (map[string]interface{}, error) {
 
 //nested aggregations
 type NestedAggs struct {
+	name  string
 	field string
 	aggs  []SearchAggregations
 }
 
-func NewNestedAggs(field string) *NestedAggs {
-	return &NestedAggs{field: field}
+func NewNestedAggs(name, field string) *NestedAggs {
+	return &NestedAggs{name: name, field: field}
 }
 
 func (this *NestedAggs) Aggs(aggs ...SearchAggregations) *NestedAggs {
@@ -408,11 +409,14 @@ func (this *NestedAggs) Aggs(aggs ...SearchAggregations) *NestedAggs {
 
 // return this aggs's name
 func (this *NestedAggs) Name() string {
-	return this.field
+	return this.name
 }
 
 // {"field":{"nested":{"path":"field"},"aggs":{}}}
 func (this *NestedAggs) BuildBody() (map[string]interface{}, error) {
+	if "" == this.name {
+		return nil, errors.New("must set name to nested aggs")
+	}
 	if "" == this.field {
 		return nil, errors.New("must set field to nested aggs")
 	}
@@ -430,7 +434,7 @@ func (this *NestedAggs) BuildBody() (map[string]interface{}, error) {
 		}
 		nested["aggs"] = aggses
 	}
-	query[this.field] = nested
+	query[this.name] = nested
 	return query, nil
 }
 
