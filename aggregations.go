@@ -651,6 +651,59 @@ func (this *SumAggs) BuildBody() (map[string]interface{}, error) {
 	return query, nil
 }
 
+// avg bucket
+type AvgBucketAggs struct {
+	name       string
+	bucketPath string
+	gapPolicy  string
+	format     string
+}
+
+func NewAvgBucketAggs(name string, bucketPath string) *AvgBucketAggs {
+	return &AvgBucketAggs{name: name, bucketPath: bucketPath}
+}
+
+func (this *AvgBucketAggs) Name() string {
+	return this.name
+}
+
+func (this *AvgBucketAggs) BucketPath(bucketPath string) *AvgBucketAggs {
+	this.bucketPath = bucketPath
+	return this
+}
+func (this *AvgBucketAggs) GapPolicy(gapPolicy string) *AvgBucketAggs {
+	this.gapPolicy = gapPolicy
+	return this
+}
+
+func (this *AvgBucketAggs) Format(format string) *AvgBucketAggs {
+	this.format = format
+	return this
+}
+
+//{
+//    "avg_bucket": {
+//        "buckets_path": "the_sum"
+//    }
+//}
+func (this *AvgBucketAggs) BuildBody() (map[string]interface{}, error) {
+	if "" == this.name {
+		return nil, errors.New("avg_bucket aggs name can't be ''")
+	}
+	if "" == this.bucketPath {
+		return nil, errors.New("avg_bucket aggregations must give buckets_path")
+	}
+	query := make(map[string]interface{})
+	avgBucketAggs := make(map[string]interface{})
+	subAvgBucketAggs := make(map[string]interface{})
+	subAvgBucketAggs["buckets_path"] = this.bucketPath
+
+	avgBucketAggs["avg_bucket"] = subAvgBucketAggs
+
+	query[this.name] = avgBucketAggs
+	return query, nil
+}
+
 // avg aggregations
 type AvgAggs struct {
 	name   string
