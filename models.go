@@ -74,13 +74,15 @@ func (this *Aggregations) GetData(paths ...string) (map[string]interface{}, erro
 	aggses := make(map[string]interface{})
 	for _, path := range paths {
 		aggs := *this
-		a := make(Aggregations)
 		ps := strings.Split(path, ".")
 		for _, p := range ps {
+			a := make(Aggregations)
 			if v, ok := aggs[p]; ok {
 				if v != nil {
 					if err := json.Unmarshal(*v, &a); err != nil {
 						aggses[ps[0]] = *aggs[p]
+					} else {
+						aggses[ps[0]] = a
 					}
 					aggs = a
 				} else {
