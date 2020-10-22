@@ -85,6 +85,7 @@ type TermsAggs struct {
 	script ScriptInter
 	order  []map[string]string
 	aggs   []SearchAggregations
+	params []map[string]interface{}
 }
 
 func NewTermsAggs(name string, field string) *TermsAggs {
@@ -121,6 +122,14 @@ func (this *TermsAggs) Script(script ScriptInter) *TermsAggs {
 	return this
 }
 
+// other extra condition add by this func
+func (this *TermsAggs) Params(key string, value interface{}) *TermsAggs {
+	param := make(map[string]interface{})
+	param[key] = value
+	this.params = append(this.params, param)
+	return this
+}
+
 // {"name":{"terms":{"field":"field","size":10,"order":[{"_key":"asc"}],"script":{"source":"doc['time'].value"}}}}
 func (this *TermsAggs) BuildBody() (map[string]interface{}, error) {
 	if "" == this.name {
@@ -147,6 +156,14 @@ func (this *TermsAggs) BuildBody() (map[string]interface{}, error) {
 			return nil, err
 		}
 		subTerms["script"] = script
+	}
+
+	if len(this.params) > 0 {
+		for _, param := range this.params {
+			for k, v := range param {
+				subTerms[k] = v
+			}
+		}
 	}
 
 	terms["terms"] = subTerms
