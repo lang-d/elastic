@@ -212,3 +212,68 @@ func TestSort(t *testing.T) {
 
 	fmt.Printf("%s\n", result)
 }
+
+func TestRangeAggs(t *testing.T) {
+	//从连接池中取得一个连接
+	v, err := MyPool.GetClient()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	defer MyPool.PutClient(v)
+	if v == nil {
+		log.Fatalf("\n\n\n\n*******\n\n\n")
+	}
+
+	client := v.(*Client)
+	query := NewQueryBody()
+	boolQuery := NewBoolQuery()
+
+	boolQuery.Filter(NewTermQuery("room_id", "6896315940368354055"))
+	query.Query(boolQuery).Size(0).Aggs(
+		NewTermsAggs("promotion_type_v1", "promotion_type_common"),
+		NewTermsAggs("brand_name", "brand_common"),
+		NewTermsAggs("goods_source", "goods_source"),
+		NewRangeAggs("ana_price", "ana_price").Ranges([]map[string]interface{}{
+			{
+				"key": "<50",
+				"to":  50,
+			},
+			{
+				"key":  "50-100",
+				"from": 50,
+				"to":   100,
+			},
+			{
+				"key":  "100-300",
+				"from": 100,
+				"to":   300,
+			},
+			{
+				"key":  "300-500",
+				"from": 300,
+				"to":   500,
+			},
+			{
+				"key":  "500-1000",
+				"from": 500,
+				"to":   1000,
+			},
+			{
+				"key":  ">1000",
+				"from": 1000,
+			},
+		}),
+	)
+
+	searchResult, err := client.Search("search_douyin_webcast_promotion", "_doc", query)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	println(query.String())
+	result, err := Format(searchResult, "promotion_type_v1.buckets", "brand_name.buckets", "goods_source.buckets", "ana_price.buckets")
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	fmt.Printf("%s\n", result)
+}

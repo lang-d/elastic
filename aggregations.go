@@ -66,7 +66,7 @@ func (this *RangeAggs) BuildBody() (map[string]interface{}, error) {
 			}
 			aggses[a.Name()] = subAggs[a.Name()]
 		}
-		_subRange["aggs"] = aggses
+		_range["aggs"] = aggses
 	}
 
 	_subRange["ranges"] = this.ranges
