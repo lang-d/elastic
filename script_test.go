@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"testing"
 	"time"
 )
@@ -271,6 +272,45 @@ func TestRangeAggs(t *testing.T) {
 	}
 	println(query.String())
 	result, err := Format(searchResult, "promotion_type_v1.buckets", "brand_name.buckets", "goods_source.buckets", "ana_price.buckets")
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	fmt.Printf("%s\n", result)
+}
+
+func TestFunctionScoreQuery(t *testing.T) {
+	//从连接池中取得一个连接
+	v, err := MyPool.GetClient()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	defer MyPool.PutClient(v)
+	if v == nil {
+		log.Fatalf("\n\n\n\n*******\n\n\n")
+	}
+
+	client := v.(*Client)
+	query := NewQueryBody()
+	boolQuery := NewBoolQuery()
+
+	boolQuery.Must(NewTermQuery("is_claim", 1))
+	boolQuery.Must(NewTermQuery("claim_success", 1))
+	boolQuery.Must(NewTermQuery("is_weixin_friend", 1))
+
+	functionScoreQuery := NewFunctionScoreQuery()
+	rand.Seed(time.Now().Unix())
+	functionScoreQuery.Query(boolQuery).RandomScore(NewRandomScoreQuery().Field("_seq_no").Seed(float64(rand.Intn(10000))))
+
+	query.Source("includes", "uid", "nickname")
+
+	query.Query(functionScoreQuery)
+	println(query.String())
+	searchResult, err := client.Search("search_douyin_user", "_doc", query)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	result, err := Format(searchResult)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}

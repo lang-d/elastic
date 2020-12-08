@@ -878,7 +878,7 @@ func (this *FunctionScoreQuery) BuildBody() (map[string]interface{}, error) {
 		if err != nil {
 			return nil, err
 		}
-		functionScore["random_score"] = randomScore["random_score"]
+		functionScore["random_score"] = randomScore
 	}
 
 	if this.fieldValueFactor != nil {
