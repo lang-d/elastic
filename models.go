@@ -143,3 +143,26 @@ type SubBulkItem struct {
 	PrimaryTerm int    `json:"_primary_term,omitempty"`
 	Error       Error  `json:"error,omitempty"`
 }
+
+type CreateIndexResult struct {
+	Took               int    `json:"took,omitempty"`
+	Error              *Error `json:"error,omitempty"`
+	Status             int    `json:"status,omitempty"`
+	Acknowledged       bool   `json:"acknowledged,omitempty"`
+	ShardsAcknowledged bool   `json:"shards_acknowledged,omitempty"`
+	Index              string `json:"index,omitempty"`
+}
+
+type AliasItem struct {
+	Index string `json:"index"`
+	Alias string `json:"alias"`
+}
+type AliasActions struct {
+	Actions []map[string]*AliasItem `json:"actions"`
+}
+
+type AliasResult struct {
+	Error        *Error `json:"error,omitempty"`
+	Status       int    `json:"status,omitempty"`
+	Acknowledged bool   `json:"acknowledged,omitempty"`
+}

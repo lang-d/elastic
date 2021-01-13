@@ -3,6 +3,7 @@ package elastic
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"testing"
@@ -316,4 +317,40 @@ func TestFunctionScoreQuery(t *testing.T) {
 	}
 
 	fmt.Printf("%s\n", result)
+}
+
+func TestExistIndex(t *testing.T) {
+	v, err := MyPool.GetClient()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	defer MyPool.PutClient(v)
+	if v == nil {
+		log.Fatalf("\n\n\n\n*******\n\n\n")
+	}
+
+	client := v.(*Client)
+	ok, err := client.ExistIndex("search_test")
+	fmt.Printf("%v, %v\n", ok, err)
+	if err != nil {
+		log.Fatalf("%v", err)
+		return
+	}
+	if !ok {
+		file, err := ioutil.ReadFile("test.json")
+		if err != nil {
+			log.Fatalf("%v", err)
+			return
+		}
+		err = client.CreateIndex("search_test_20210113", file)
+		if err != nil {
+			log.Fatalf("%v", err)
+			return
+		}
+		err = client.PutAlias("search_test_20210113", "search_test1", "search_test2")
+		if err != nil {
+			log.Fatalf("%v", err)
+			return
+		}
+	}
 }

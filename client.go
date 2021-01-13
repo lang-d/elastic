@@ -229,3 +229,99 @@ func (this *Client) Close() error {
 	this.client.CloseIdleConnections()
 	return nil
 }
+
+func (this *Client) ExistIndex(index string) (bool, error) {
+	req, err := http.NewRequest("GET", this.url+"/"+index, nil)
+	req.SetBasicAuth(this.basicAuthUser, this.basicAuthPasswd)
+	req.Header.Set("Content-Type", "application/x-ndjson")
+
+	response, err := this.client.Do(req)
+	if err != nil {
+		return false, err
+	}
+	defer response.Body.Close()
+
+	result := new(SearchResult)
+
+	err = json.NewDecoder(response.Body).Decode(result)
+	if err != nil {
+		return false, err
+	}
+	if result.Error == nil {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (this *Client) CreateIndex(index string, body []byte) error {
+	req, err := http.NewRequest("PUT", this.url+"/"+index, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+
+	req.SetBasicAuth(this.basicAuthUser, this.basicAuthPasswd)
+	req.Header.Set("Content-Type", "application/json")
+
+	response, err := this.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	result := new(CreateIndexResult)
+
+	err = json.NewDecoder(response.Body).Decode(result)
+
+	if err != nil {
+		return err
+	}
+	if result.Error != nil {
+		return errors.New(result.Error.Reason)
+	}
+	return nil
+}
+
+func (this *Client) PutAlias(index string, names ...string) error {
+	actions := new(AliasActions)
+	actionList := make([]map[string]*AliasItem, 0)
+	for _, name := range names {
+		action := &AliasItem{
+			Index: index,
+			Alias: name,
+		}
+		actionList = append(actionList, map[string]*AliasItem{
+			"add": action,
+		})
+	}
+	actions.Actions = actionList
+
+	body, err := json.Marshal(actions)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", this.url+"/_aliases", bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	req.SetBasicAuth(this.basicAuthUser, this.basicAuthPasswd)
+	req.Header.Set("Content-Type", "application/json")
+
+	response, err := this.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	result := new(AliasResult)
+
+	err = json.NewDecoder(response.Body).Decode(result)
+
+	if err != nil {
+		return err
+	}
+	if result.Error != nil {
+		return errors.New(result.Error.Reason)
+	}
+	return nil
+}
